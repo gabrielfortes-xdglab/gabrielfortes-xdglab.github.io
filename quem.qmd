@@ -1,0 +1,36 @@
+---
+pagetitle: "Quem somos — xdG lab"
+---
+
+```{=html}
+<div class="band inner">
+  <div class="wrap band-inner">
+    <div class="kicker">A dupla</div>
+    <h1>Quem somos</h1>
+    <p>Dois pesquisadores que constroem o que usam. Já colaboram há anos em educação, autorregulação da aprendizagem e ensino de programação.</p>
+  </div>
+</div>
+
+<div class="wrap body-wrap">
+  <div class="duo">
+    <div class="person">
+      <div class="mark">GF</div>
+      <div>
+        <h4>Gabriel Fortes</h4>
+        <div class="role">UFAL · Cognição &amp; Educação</div>
+        <p>Psicologia cognitiva aplicada, argumentação e desigualdades educacionais. Trabalha com autorregulação da aprendizagem, ensino deliberativo e visualização de dados com foco em impacto social.</p>
+        <a class="scholar" href="https://scholar.google.com/citations?user=UhcAJbIAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
+      </div>
+    </div>
+    <div class="person">
+      <div class="mark">LS</div>
+      <div>
+        <h4>Leonardo Soares e Silva</h4>
+        <div class="role">IFPE · Educação em Computação</div>
+        <p>Pesquisa ensino de programação, autorregulação da aprendizagem e aprendizagem colaborativa apoiada por computador (CSCL). Constrói scaffolds computacionais e assistentes para estudantes iniciantes.</p>
+        <a class="scholar" href="https://scholar.google.com/citations?user=sonI9rQAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
+      </div>
+    </div>
+  </div>
+</div>
+```

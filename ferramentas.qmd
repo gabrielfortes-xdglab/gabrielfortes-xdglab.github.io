@@ -1,0 +1,35 @@
+---
+pagetitle: "Ferramentas — xdG lab"
+---
+
+```{=html}
+<div class="band inner">
+  <div class="wrap band-inner">
+    <div class="kicker">Abertas · grátis · sem login</div>
+    <h1>Ferramentas</h1>
+    <p>Tudo que está no ar para usar agora. Aponte a câmera no QR ou toque para abrir.</p>
+  </div>
+</div>
+
+<div class="wrap body-wrap">
+  <div class="tool-card">
+    <div class="tool-shot">
+      <div class="fallback">TALLER</div>
+      <iframe src="https://gabrielfortes-nees.github.io/taller-escritura-argumentativa/" title="Pré-visualização do Taller" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="tool-body">
+      <div class="tool-meta">Estudantes <span class="dot">/</span> Espanhol <span class="dot">/</span> No ar</div>
+      <h3>Taller de Escritura Argumentativa</h3>
+      <p>Construtor guiado de ensaios argumentativos: fundamentos, operadores discursivos e um bosquejo interativo que o estudante exporta em PDF.</p>
+      <div class="tool-foot">
+        <a class="tool-cta" href="https://gabrielfortes-nees.github.io/taller-escritura-argumentativa/" target="_blank">Abrir ferramenta</a>
+        <div class="qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=https://gabrielfortes-nees.github.io/taller-escritura-argumentativa/" alt="QR code da ferramenta">
+          <span>aponte a câmera</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="next-note">Primeira de muitas. A lista cresce a cada nova ferramenta publicada.</p>
+</div>
+```

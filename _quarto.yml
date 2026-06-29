@@ -1,0 +1,28 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "xdG lab"
+  site-url: "https://xdglab.dev"
+  navbar:
+    pinned: true
+    left:
+      - text: "Início"
+        href: index.qmd
+      - text: "Ferramentas"
+        href: ferramentas.qmd
+      - text: "O que fazemos"
+        href: fazemos.qmd
+      - text: "Quem somos"
+        href: quem.qmd
+  page-footer:
+    left: "xdG lab · xdglab.dev"
+    right: "Gabriel Fortes · Leonardo Soares e Silva"
+
+format:
+  html:
+    theme: theme.scss
+    page-layout: full
+    toc: false
+    lang: pt-BR

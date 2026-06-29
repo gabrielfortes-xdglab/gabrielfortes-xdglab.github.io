@@ -1,0 +1,9 @@
+/.quarto/
+/_site/
+.DS_Store
+.Rproj.user/
+.Rhistory
+/_mockups/
+
+**/*.quarto_ipynb
+/.claude/

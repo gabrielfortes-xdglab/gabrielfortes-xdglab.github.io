@@ -1,0 +1,23 @@
+---
+pagetitle: "xdG lab — ferramentas digitais para ensino, pesquisa e dados"
+---
+
+```{=html}
+<div class="band home">
+  <svg class="motif" width="560" height="560" viewBox="0 0 560 560" fill="none" aria-hidden="true">
+    <circle cx="280" cy="280" r="210" stroke="#FF6A4D" stroke-width="2" opacity="0.5"/>
+    <circle cx="360" cy="220" r="155" fill="#FF6A4D" opacity="0.22"/>
+    <circle cx="230" cy="330" r="120" fill="#F3F0E7" opacity="0.12"/>
+    <circle cx="360" cy="220" r="155" stroke="#F3F0E7" stroke-width="1.5" opacity="0.4"/>
+  </svg>
+  <div class="wrap band-inner">
+    <div class="kicker">Dois pesquisadores · educação + dados</div>
+    <h1>Construímos ferramentas digitais para ensino, pesquisa e dados.</h1>
+    <p>xdG lab reúne os apps que a gente cria e mantém no ar: abertos para usar na sala de aula, na análise e na visualização de dados.</p>
+    <div class="btn-row">
+      <a class="btn-xdg" href="ferramentas.html">Ver ferramentas</a>
+      <a class="btn-xdg ghost" href="quem.html">Quem somos</a>
+    </div>
+  </div>
+</div>
+```

@@ -1,0 +1,33 @@
+---
+pagetitle: "O que fazemos — xdG lab"
+---
+
+```{=html}
+<div class="band inner">
+  <div class="wrap band-inner">
+    <div class="kicker">Três frentes</div>
+    <h1>O que fazemos</h1>
+    <p>Uma mesma dupla atravessando ferramenta, dado e pesquisa.</p>
+  </div>
+</div>
+
+<div class="wrap body-wrap">
+  <div class="frentes-grid">
+    <div class="frente">
+      <div class="n">01 / Soluções</div>
+      <h3>Ferramentas digitais</h3>
+      <p>Aplicações abertas para a sala de aula, a gestão e a pesquisa. Cada uma hospedada e mantida no ar por nós.</p>
+    </div>
+    <div class="frente">
+      <div class="n">02 / Experimentos</div>
+      <h3>Dados &amp; narrativa</h3>
+      <p>Visualização e storytelling com dados públicos, explorando formas de contar que não cabem nos formatos de sempre.</p>
+    </div>
+    <div class="frente">
+      <div class="n">03 / Pesquisa</div>
+      <h3>Cognição e educação</h3>
+      <p>Projetos e publicações na fronteira entre psicologia cognitiva, argumentação, autorregulação da aprendizagem e educação em computação.</p>
+    </div>
+  </div>
+</div>
+```
