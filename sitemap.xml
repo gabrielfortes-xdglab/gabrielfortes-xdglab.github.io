@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://xdglab.dev/quem.html</loc>
-    <lastmod>2026-06-26T15:35:29.465Z</lastmod>
-  </url>
-  <url>
     <loc>https://xdglab.dev/ferramentas.html</loc>
-    <lastmod>2026-06-26T15:35:11.472Z</lastmod>
+    <lastmod>2026-06-30T10:44:32.509Z</lastmod>
   </url>
   <url>
     <loc>https://xdglab.dev/fazemos.html</loc>
-    <lastmod>2026-06-26T15:35:20.092Z</lastmod>
+    <lastmod>2026-06-30T10:44:32.509Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xdglab.dev/quem.html</loc>
+    <lastmod>2026-06-30T10:44:32.509Z</lastmod>
   </url>
   <url>
     <loc>https://xdglab.dev/index.html</loc>
-    <lastmod>2026-06-26T15:35:02.547Z</lastmod>
+    <lastmod>2026-06-30T10:44:32.509Z</lastmod>
   </url>
 </urlset>
