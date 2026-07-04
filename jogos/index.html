@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jogos do Robô</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ouro: #FFD97A; --creme: #FFE9BE; --teal: #8AD7C1; --azul: #9FB8FF;
+  }
+  html, body { min-height: 100%; }
+  body {
+    font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    color: var(--creme);
+    background:
+      radial-gradient(120% 80% at 18% 8%, rgba(255,196,120,.28), rgba(255,196,120,0) 60%),
+      linear-gradient(160deg, #1E2A56 0%, #4A3F7E 42%, #9A5B8F 74%, #E8875F 100%);
+    background-attachment: fixed;
+    display: flex; flex-direction: column; align-items: center;
+    padding: clamp(20px, 5vw, 56px) 18px calc(40px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+  }
+  header { text-align: center; max-width: 720px; margin-bottom: clamp(22px, 4vw, 40px); }
+  .mascote { width: clamp(64px, 16vw, 96px); height: auto; margin-bottom: 8px;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.4)); }
+  h1 {
+    font-size: clamp(30px, 7vw, 52px); line-height: 1.05;
+    text-shadow: 0 3px 0 rgba(40,25,60,.5), 0 10px 30px rgba(0,0,0,.35);
+  }
+  .sub { margin-top: 8px; font-size: clamp(15px, 3.4vw, 20px); color: rgba(255,235,190,.85); }
+
+  .grid {
+    width: 100%; max-width: 960px;
+    display: grid; gap: clamp(14px, 2.4vw, 22px);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  .card {
+    position: relative; display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    background: rgba(24,20,46,.55);
+    border: 1px solid rgba(255,210,140,.28);
+    border-radius: 22px; overflow: hidden;
+    box-shadow: 0 18px 44px rgba(0,0,0,.4);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-5px);
+    border-color: rgba(255,220,150,.6);
+    box-shadow: 0 24px 56px rgba(0,0,0,.5);
+    outline: none;
+  }
+  .art { height: 116px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12)); }
+  .art svg { width: 96px; height: 96px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
+  .card .body { padding: 16px 18px 20px; }
+  .card h2 { font-size: clamp(19px, 4.4vw, 23px); }
+  .card p { margin-top: 6px; font-size: 14.5px; line-height: 1.4; color: rgba(255,240,220,.8); font-weight: normal; }
+  .jogar {
+    margin-top: 14px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 15px; color: #2A1F14; font-weight: bold;
+    background: var(--ouro); padding: 8px 16px; border-radius: 999px;
+    align-self: flex-start;
+  }
+  .accent { height: 5px; }
+  .c1 .accent { background: linear-gradient(90deg, #FFD97A, #FFB26B); }
+  .c2 .accent { background: linear-gradient(90deg, #8AD7C1, #7FB3D5); }
+  .c3 .accent { background: linear-gradient(90deg, #F0A0C0, #9FB8FF); }
+
+  footer { margin-top: clamp(24px, 4vw, 40px); text-align: center;
+    font-size: 13.5px; color: rgba(255,235,190,.7); font-weight: normal; max-width: 640px; }
+  .dica { display: inline-block; margin-top: 6px; padding: 6px 14px; border-radius: 999px;
+    background: rgba(0,0,0,.22); border: 1px solid rgba(255,210,140,.2); }
+</style>
+</head>
+<body>
+  <header>
+    <!-- mascote: a cabeça do robô da suíte -->
+    <svg class="mascote" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <line x1="38" y1="26" x2="34" y2="10" stroke="#2E4468" stroke-width="4" stroke-linecap="round"/>
+      <line x1="62" y1="26" x2="66" y2="10" stroke="#2E4468" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="34" cy="8" r="6" fill="#FFD97A"/>
+      <circle cx="66" cy="8" r="6" fill="#FFD97A"/>
+      <rect x="18" y="24" width="64" height="52" rx="15" fill="#4E7BC0"/>
+      <rect x="18" y="24" width="64" height="52" rx="15" fill="url(#g)"/>
+      <rect x="10" y="40" width="9" height="18" rx="4" fill="#F2B457"/>
+      <rect x="81" y="40" width="9" height="18" rx="4" fill="#F2B457"/>
+      <circle cx="39" cy="50" r="11" fill="#fff"/>
+      <circle cx="61" cy="50" r="11" fill="#fff"/>
+      <circle cx="41" cy="52" r="5" fill="#1C2740"/>
+      <circle cx="63" cy="52" r="5" fill="#1C2740"/>
+      <circle cx="39.5" cy="50.5" r="1.8" fill="#fff"/>
+      <circle cx="61.5" cy="50.5" r="1.8" fill="#fff"/>
+      <path d="M42 66 Q50 72 58 66" stroke="#1C2740" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#6BA0E8"/><stop offset="1" stop-color="#3D64AC"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <h1>Jogos do Robô</h1>
+    <p class="sub">aprender brincando — três aventuras para crianças pequenas</p>
+  </header>
+
+  <main class="grid">
+    <a class="card c1" href="robo-das-palavras.html">
+      <div class="accent"></div>
+      <div class="art">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="14" y="20" width="34" height="34" rx="8" fill="#FFF3D6" stroke="#D9A85C" stroke-width="2" transform="rotate(-6 31 37)"/>
+          <text x="31" y="45" font-family="Arial Rounded MT Bold, sans-serif" font-size="24" font-weight="bold" fill="#4A3520" text-anchor="middle" transform="rotate(-6 31 37)">A</text>
+          <rect x="50" y="44" width="34" height="34" rx="8" fill="#FFF3D6" stroke="#D9A85C" stroke-width="2" transform="rotate(7 67 61)"/>
+          <text x="67" y="69" font-family="Arial Rounded MT Bold, sans-serif" font-size="24" font-weight="bold" fill="#4A3520" text-anchor="middle" transform="rotate(7 67 61)">B</text>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Robô das Palavras</h2>
+        <p>Colete as letras, forme a palavra e dê vida ao bicho. Primeiros passos da leitura.</p>
+        <span class="jogar">Jogar ›</span>
+      </div>
+    </a>
+
+    <a class="card c2" href="reino-animal.html">
+      <div class="accent"></div>
+      <div class="art">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- pena + pompom de pelos -->
+          <g transform="translate(30 50) rotate(-18)">
+            <ellipse cx="0" cy="0" rx="10" ry="24" fill="#FFF3D6" stroke="#D9A85C" stroke-width="2"/>
+            <line x1="0" y1="-24" x2="0" y2="28" stroke="#C98F44" stroke-width="2.4"/>
+          </g>
+          <g transform="translate(66 50)">
+            <circle r="16" fill="#F3E0BE" stroke="#D9A85C" stroke-width="2"/>
+            <g stroke="#E7C89A" stroke-width="2.4" stroke-linecap="round">
+              <line x1="14" y1="0" x2="21" y2="0"/><line x1="-14" y1="0" x2="-21" y2="0"/>
+              <line x1="0" y1="14" x2="0" y2="21"/><line x1="0" y1="-14" x2="0" y2="-21"/>
+              <line x1="10" y1="10" x2="15" y2="15"/><line x1="-10" y1="-10" x2="-15" y2="-15"/>
+              <line x1="10" y1="-10" x2="15" y2="-15"/><line x1="-10" y1="10" x2="-15" y2="15"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Reino Animal</h2>
+        <p>Junte e separe os bichos por penas, pelos e escamas. Semelhanças e diferenças.</p>
+        <span class="jogar">Jogar ›</span>
+      </div>
+    </a>
+
+    <a class="card c3" href="reino-animal-familias.html">
+      <div class="accent"></div>
+      <div class="art">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- três casinhas de família -->
+          <g>
+            <rect x="10" y="52" width="24" height="26" rx="5" fill="#2C3350"/>
+            <rect x="10" y="52" width="24" height="6" rx="3" fill="#786E9E"/>
+            <circle cx="22" cy="42" r="7" fill="#F5D563"/>
+          </g>
+          <g>
+            <rect x="38" y="52" width="24" height="26" rx="5" fill="#2C3350"/>
+            <rect x="38" y="52" width="24" height="6" rx="3" fill="#786E9E"/>
+            <circle cx="50" cy="42" r="7" fill="#9A6B45"/>
+          </g>
+          <g>
+            <rect x="66" y="52" width="24" height="26" rx="5" fill="#2C3350"/>
+            <rect x="66" y="52" width="24" height="6" rx="3" fill="#786E9E"/>
+            <circle cx="78" cy="42" r="7" fill="#6FA8D8"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Reino Animal: As Famílias</h2>
+        <p>Leve cada bicho para a sua família. Aves, mamíferos e peixes por seus traços.</p>
+        <span class="jogar">Jogar ›</span>
+      </div>
+    </a>
+  </main>
+
+  <footer>
+    Feito para tocar e ouvir: a voz explica, a tela mostra. Sem punição, sem pressa.
+    <br><span class="dica">📱 no celular, jogue deitado (na horizontal)</span>
+  </footer>
+</body>
+</html>

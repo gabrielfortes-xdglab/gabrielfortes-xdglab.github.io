@@ -67,6 +67,24 @@ pagetitle: "Ferramentas — xdG lab"
       </div>
     </div>
   </div>
+  <div class="tool-card">
+    <div class="tool-shot">
+      <div class="fallback">ROBÔ</div>
+      <iframe src="jogos/index.html" title="Pré-visualização dos Jogos do Robô" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="tool-body">
+      <div class="tool-meta">Educação infantil <span class="dot">/</span> Português <span class="dot">/</span> No ar</div>
+      <h3>Jogos do Robô</h3>
+      <p>Três jogos para crianças de 4 a 7 anos, guiados por voz e sem punição: formar palavras e dar vida aos bichos, e classificar animais por semelhanças e diferenças (penas, pelos, escamas) até chegar às famílias: aves, mamíferos e peixes. Jogáveis no celular.</p>
+      <div class="tool-foot">
+        <a class="tool-cta" href="jogos/index.html" target="_blank">Abrir ferramenta</a>
+        <div class="qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=https://gabrielfortes-xdglab.github.io/jogos/" alt="QR code da ferramenta">
+          <span>aponte a câmera</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <p class="next-note">A lista cresce a cada nova ferramenta publicada.</p>
 </div>
 ```

@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reino Animal — As Famílias</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #141B33;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    overflow: hidden;
+  }
+  #wrap { position: relative; }
+  canvas {
+    display: block;
+    border-radius: 20px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+  #touch { position: absolute; inset: 0; pointer-events: none; display: none; }
+  @media (pointer: coarse) { #touch { display: block; } }
+  #touch.show { display: block; }
+  .tbtn {
+    position: absolute; bottom: 4%; width: 14%; max-width: 84px; aspect-ratio: 1 / 1;
+    border-radius: 50%; border: 2px solid rgba(255,220,160,.45);
+    background: rgba(28,22,52,.42); color: #FFE9BE;
+    font: bold 34px/1 "Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: auto; -webkit-tap-highlight-color: transparent;
+    touch-action: none; -webkit-user-select: none; user-select: none;
+  }
+  .tbtn:active { background: rgba(255,210,140,.32); transform: scale(.94); }
+  #btnL { left: 4%; }
+  #btnR { left: 20%; }
+  .tbtn.jump { right: 4%; background: rgba(60,90,150,.5); }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="960" height="560"></canvas>
+  <div id="touch" aria-hidden="true">
+    <button class="tbtn" id="btnL" aria-label="esquerda">‹</button>
+    <button class="tbtn" id="btnR" aria-label="direita">›</button>
+    <button class="tbtn jump" id="btnJ" aria-label="pular">↑</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// REINO ANIMAL — AS FAMÍLIAS
+// Protótipo de fenótipo + filiação: cada bicho é uma fichinha
+// de traços (cobertura, como nasce, como se move). O robô carrega
+// o bicho, uma "ficha" acende mostrando esse conjunto (a voz nomeia),
+// e a criança leva cada um para a família com que ele se parece
+// (aves / mamíferos / peixes), cada uma com um animal-exemplar adulto.
+// Sem bibliotecas, sem imagens externas: canvas + Web Audio + voz.
+// ============================================================
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- as três famílias (cada uma é um pacote de traços) ----------
+const GRUPOS = {
+  aves:      { nome:'aves',      art:'das', exemplar:'pato',  cobertura:'penas',   nasce:'ovo',     move:'voa'  },
+  mamiferos: { nome:'mamíferos', art:'dos', exemplar:'urso',  cobertura:'pelos',   nasce:'barriga', move:'anda' },
+  peixes:    { nome:'peixes',    art:'dos', exemplar:'peixe', cobertura:'escamas', nasce:'ovo',     move:'nada' },
+};
+const HOUSE_X = { aves: 150, mamiferos: 480, peixes: 810 };
+
+// os bichos que boiam (dois de cada família)
+const ROSTER = [
+  { type:'passarinho', group:'aves' },
+  { type:'pato',       group:'aves' },
+  { type:'gato',       group:'mamiferos' },
+  { type:'coelho',     group:'mamiferos' },
+  { type:'peixe',      group:'peixes' },
+  { type:'peixe2',     group:'peixes' },
+];
+
+// nomes falados
+const NOME = { passarinho:'passarinho', pato:'pato', gato:'gato', coelho:'coelho', peixe:'peixe', peixe2:'peixe', urso:'urso' };
+const COB_FRASE = { penas:'penas', pelos:'pelos', escamas:'escamas' };
+const NASCE_FRASE = { ovo:'bota ovo', barriga:'nasce da barriga da mãe' };
+const MOVE_FRASE = { voa:'voa', anda:'anda', nada:'nada' };
+
+// ---------- física (mesma sensação amigável do plataforma) ----------
+const TUNE = {
+  gravity: 1500, jumpVel: -660, cutFactor: 0.45, maxFall: 620,
+  moveSpeed: 280, accelGround: 2600, accelAir: 1700,
+  frictionGround: 2200, coyoteTime: 0.12, jumpBuffer: 0.15,
+};
+
+// ---------- voz (pt-BR nativa do navegador) ----------
+function speak(text, rate){
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'pt-BR'; u.rate = rate || 0.95;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+// ---------- sons ----------
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function toneAt(freq, start, dur, type, vol){
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type || 'sine'; o.frequency.value = freq;
+  const t0 = audioCtx.currentTime + start;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol || .15, t0 + .01);
+  g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(t0); o.stop(t0 + dur + .05);
+}
+const sfx = {
+  plim(n){ if(audioCtx){ toneAt(700+n*55,0,.12); toneAt(1050+n*80,.05,.2,'sine',.12);} },
+  pop(){ if(audioCtx) toneAt(520,0,.08,'sine',.09); },
+  boing(){ if(audioCtx){ toneAt(220,0,.1,'triangle',.12); toneAt(180,.07,.14,'triangle',.1);} },
+  jump(){ if(audioCtx) toneAt(330,0,.1,'square',.04); },
+  win(){ if(audioCtx) [523,659,784,1047,1319].forEach((f,i)=>toneAt(f,i*.1,.4,'triangle',.16)); },
+};
+
+// ---------- entrada ----------
+const keys = {};
+addEventListener('keydown', e => {
+  if (['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code)) e.preventDefault();
+  ensureAudio();
+  if (game.state === 'title'){ startGame(); return; }
+  if (game.state === 'finale' && e.code === 'Enter'){ resetGame(); return; }
+  if (!keys[e.code]){
+    keys[e.code] = true;
+    if (isJump(e.code)) player.jumpBufferTimer = TUNE.jumpBuffer;
+  }
+});
+addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (isJump(e.code) && player.vy < 0) player.vy *= TUNE.cutFactor;
+});
+canvas.addEventListener('pointerdown', () => {
+  ensureAudio();
+  if (game.state === 'title') startGame();
+  else if (game.state === 'finale') resetGame();
+});
+const isJump = c => c==='Space' || c==='ArrowUp' || c==='KeyW';
+const leftHeld  = () => keys['ArrowLeft'] || keys['KeyA'];
+const rightHeld = () => keys['ArrowRight'] || keys['KeyD'];
+
+// ---------- controles de toque (celular) ----------
+(function bindTouch(){
+  const L=document.getElementById('btnL'), R=document.getElementById('btnR'), J=document.getElementById('btnJ');
+  if(!L) return;
+  const maybeStart=()=>{ if(game.state==='title'){ startGame(); return true; } if(game.state==='finale'){ resetGame(); return true; } return false; };
+  const wire=(el,on,off)=>{
+    const s=e=>{ e.preventDefault(); ensureAudio(); on(); };
+    const f=e=>{ e.preventDefault(); if(off) off(); };
+    el.addEventListener('touchstart',s,{passive:false});
+    el.addEventListener('touchend',f,{passive:false});
+    el.addEventListener('touchcancel',f,{passive:false});
+    el.addEventListener('mousedown',s); el.addEventListener('mouseup',f); el.addEventListener('mouseleave',f);
+    el.addEventListener('contextmenu',e=>e.preventDefault());
+  };
+  wire(L, ()=>{ if(maybeStart())return; keys['ArrowLeft']=true; }, ()=>{ keys['ArrowLeft']=false; });
+  wire(R, ()=>{ if(maybeStart())return; keys['ArrowRight']=true; }, ()=>{ keys['ArrowRight']=false; });
+  wire(J, ()=>{ if(maybeStart())return; player.jumpBufferTimer=TUNE.jumpBuffer; }, ()=>{ if(player.vy<0) player.vy*=TUNE.cutFactor; });
+  if (('ontouchstart' in window) || (navigator.maxTouchPoints||0) > 0) document.getElementById('touch').classList.add('show');
+})();
+
+// ---------- mundo ----------
+const GROUND_Y = H - 84;
+const platforms = [
+  { x: 0,   y: GROUND_Y, w: W, h: 84, ground: true },
+  { x: 250, y: 388, w: 160, h: 22 },
+  { x: 540, y: 300, w: 170, h: 22 },
+  { x: 250, y: 224, w: 150, h: 22 },
+];
+// pontos onde os bichos boiam (nas faixas entre as casas, nunca sobre elas)
+const SPOTS = [
+  { x: 320, y: GROUND_Y - 40 }, { x: 660, y: GROUND_Y - 40 },
+  { x: 330, y: 348 }, { x: 370, y: 348 },
+  { x: 560, y: 262 }, { x: 600, y: 262 }, { x: 660, y: 262 },
+  { x: 320, y: 186 },
+];
+
+// ---------- estado ----------
+const game = { state: 'title', celebrateT: 0, needToSort: 0 };
+const player = {
+  x: 590, y: GROUND_Y - 60, w: 46, h: 58,
+  vx: 0, vy: 0, grounded: false,
+  coyoteTimer: 0, jumpBufferTimer: 0, facing: 1,
+  squashX: 1, squashY: 1, walkPhase: 0,
+  blinkTimer: 2, blinking: 0, antennaBob: 0,
+};
+let critters = [];   // [{type, group, spot, bob, wobble, state, house, cbob}]
+let casas = [];      // [{key, cx, count}]
+let carried = null;
+const particles = [], confetti = [], floaters = [];
+
+// atmosfera
+const fireflies = [];
+const N_FIRE = REDUCED ? 0 : 16;
+for (let i=0;i<N_FIRE;i++){
+  fireflies.push({ x: Math.random()*W, y: 120 + Math.random()*(GROUND_Y-160),
+    a: Math.random()*7, s: .3 + Math.random()*.7, ph: Math.random()*7 });
+}
+const stars = [];
+for (let i=0;i<40;i++){
+  stars.push({ x: Math.random()*W, y: Math.random()*H*0.4, r: .6+Math.random()*1.2, ph: Math.random()*7 });
+}
+
+// ---------- montagem ----------
+function freeSpots(except){
+  const ocup = new Set(critters.filter(o => o!==except && o.state==='float').map(o => o.spot));
+  return [...SPOTS.keys()].filter(i => {
+    if (ocup.has(i)) return false;
+    const s = SPOTS[i];
+    if (s.y < GROUND_Y - 60) return true;               // pontos altos valem sempre
+    return Object.values(HOUSE_X).every(cx => Math.abs(s.x - cx) > 75);
+  });
+}
+function shuffle(a){ return a.slice().sort(() => Math.random()-.5); }
+
+function loadScreen(){
+  carried = null;
+  casas = Object.keys(GRUPOS).map(key => ({ key, cx: HOUSE_X[key], count: 0 }));
+  const elenco = shuffle(ROSTER);
+  const spotOrder = freeSpots(null);
+  critters = elenco.map((b, i) => ({
+    type: b.type, group: b.group,
+    spot: spotOrder[i % spotOrder.length],
+    bob: Math.random()*7, wobble: 0, state:'float', house:null, cbob: Math.random()*7,
+  }));
+  game.needToSort = critters.length;
+  player.x = 590; player.y = GROUND_Y - player.h; player.vx = 0; player.vy = 0;
+}
+function startGame(){
+  game.state = 'play';
+  loadScreen();
+  speak('Três famílias de bichos! As aves têm penas, os mamíferos têm pelos, e os peixes têm escamas. Leve cada bicho para a sua família.');
+}
+function resetGame(){
+  game.state = 'title'; carried = null;
+  player.x = 590; player.y = GROUND_Y - 60; player.vx = 0; player.vy = 0;
+}
+
+// ============================================================
+// LOOP
+// ============================================================
+let last = performance.now();
+function frame(now){
+  let dt = (now-last)/1000; last = now;
+  if (dt > .05) dt = .05;
+  update(dt, now/1000);
+  draw(now/1000);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ============================================================
+// UPDATE
+// ============================================================
+function update(dt, t){
+  for (const f of fireflies){
+    f.ph += dt; f.a += dt*.4;
+    f.x += Math.cos(f.a)*14*dt*f.s*2;
+    f.y += Math.sin(f.a*1.3)*10*dt*f.s*2;
+    if (f.x<-10) f.x=W+10; if (f.x>W+10) f.x=-10;
+  }
+  updateFx(dt);
+  if (game.state === 'title') return;
+
+  const p = player;
+  const want = (rightHeld()?1:0) - (leftHeld()?1:0);
+  const accel = p.grounded ? TUNE.accelGround : TUNE.accelAir;
+  if (want !== 0){
+    p.vx += want*accel*dt;
+    p.vx = Math.max(-TUNE.moveSpeed, Math.min(TUNE.moveSpeed, p.vx));
+    p.facing = want;
+  } else if (p.grounded){
+    const f = TUNE.frictionGround*dt;
+    p.vx = Math.abs(p.vx)<=f ? 0 : p.vx - Math.sign(p.vx)*f;
+  }
+  p.vy += TUNE.gravity*dt;
+  if (p.vy > TUNE.maxFall) p.vy = TUNE.maxFall;
+
+  p.coyoteTimer -= dt; p.jumpBufferTimer -= dt;
+  if (p.jumpBufferTimer > 0 && p.coyoteTimer > 0){
+    p.vy = TUNE.jumpVel;
+    p.jumpBufferTimer = 0; p.coyoteTimer = 0; p.grounded = false;
+    p.squashX=.72; p.squashY=1.32;
+    dust(p.x+p.w/2, p.y+p.h, 6); sfx.jump();
+  }
+
+  const wasG = p.grounded;
+  p.x += p.vx*dt;
+  if (p.x<6){p.x=6;p.vx=0;} if (p.x+p.w>W-6){p.x=W-6-p.w;p.vx=0;}
+  p.y += p.vy*dt;
+  p.grounded = false;
+  for (const pl of platforms){
+    const ox = p.x+p.w>pl.x+4 && p.x<pl.x+pl.w-4;
+    const feetPrev = p.y+p.h - p.vy*dt;
+    if (p.vy>=0 && ox && feetPrev<=pl.y+1 && p.y+p.h>=pl.y){
+      p.y = pl.y-p.h; p.vy = 0; p.grounded = true;
+    }
+  }
+  if (p.grounded){
+    p.coyoteTimer = TUNE.coyoteTime;
+    if (!wasG){ p.squashX=1.3; p.squashY=.7; dust(p.x+p.w/2, p.y+p.h, 8); }
+  }
+  p.squashX += (1-p.squashX)*Math.min(1,12*dt);
+  p.squashY += (1-p.squashY)*Math.min(1,12*dt);
+  if (p.grounded && Math.abs(p.vx)>20) p.walkPhase += Math.abs(p.vx)*dt*.09;
+  p.antennaBob += dt*4;
+  p.blinkTimer -= dt;
+  if (p.blinkTimer<=0){ p.blinking=.13; p.blinkTimer=2+Math.random()*3.5; }
+  if (p.blinking>0) p.blinking -= dt;
+
+  if (game.state === 'play'){
+    const cx = p.x+p.w/2, cy = p.y+p.h/2;
+    for (const c of critters){
+      if (c.state==='float'){ c.bob += dt*2.6; if (c.wobble>0) c.wobble -= dt; }
+    }
+    // pegar
+    if (!carried){
+      for (const c of critters){
+        if (c.state !== 'float') continue;
+        const s = SPOTS[c.spot];
+        const ly = s.y + Math.sin(c.bob)*(REDUCED?1:5);
+        const dx = cx - s.x, dy = cy - ly;
+        if (dx*dx+dy*dy < 46*46){ pickUp(c); break; }
+      }
+    }
+    // depositar (encostar no chão, dentro da zona de uma casa)
+    if (carried && p.grounded && p.y+p.h >= GROUND_Y-2){
+      for (const casa of casas){
+        if (Math.abs(cx - casa.cx) < 60){ deposit(carried, casa); break; }
+      }
+    }
+  }
+  if (carried) carried.cbob += dt*3;
+
+  if (game.state === 'celebrate'){
+    game.celebrateT -= dt;
+    if (game.celebrateT <= 0){
+      game.state = 'finale';
+      speak('Parabéns! Você conhece as famílias dos bichos!');
+      rainConfetti(120);
+    }
+  }
+}
+
+function pickUp(c){
+  c.state = 'carried'; carried = c;
+  sfx.pop();
+  const g = GRUPOS[c.group];
+  // a ficha acende: a voz nomeia o pacote de traços
+  speak(NOME[c.type] + '! Tem ' + COB_FRASE[g.cobertura] + ', ' + NASCE_FRASE[g.nasce] + ', e ' + MOVE_FRASE[g.move] + '.');
+}
+
+function deposit(c, casa){
+  carried = null;
+  const g = GRUPOS[c.group];
+  const px = casa.cx, py = GROUND_Y - 30;
+  if (c.group === casa.key){
+    c.state = 'sorted'; c.house = casa;
+    const done = critters.filter(k => k.state==='sorted').length;
+    sfx.plim(done);
+    burst(px, py, 12, 'gold');
+    floatText(px, py-46, 'família ' + g.art + ' ' + g.nome + '!', 22, '#FFD97A');
+    speak('É da família ' + g.art + ' ' + g.nome + '! O ' + NOME[c.type] + ' tem ' + COB_FRASE[g.cobertura] + '.');
+    casa.count++;
+    if (done >= game.needToSort) screenComplete();
+  } else {
+    // não é dessa família: nada de punição, a voz ensina a que família ele pertence
+    c.state = 'float'; c.wobble = .6;
+    const free = freeSpots(c);
+    if (free.length) c.spot = free[Math.floor(Math.random()*free.length)];
+    sfx.boing();
+    speak('O ' + NOME[c.type] + ' é da família ' + g.art + ' ' + g.nome + '. Vamos achar a casa dele?');
+  }
+}
+
+function screenComplete(){
+  game.state = 'celebrate'; game.celebrateT = 3.4;
+  sfx.win();
+  rainConfetti(REDUCED ? 20 : 70);
+  floatText(W/2, 190, 'Muito bem!', 46, '#FFD97A');
+  setTimeout(() => speak('Muito bem! Cada bicho na sua família!', .9), 400);
+}
+
+// ============================================================
+// EFEITOS
+// ============================================================
+function dust(x,y,n){
+  for(let i=0;i<n;i++) particles.push({x:x+(Math.random()-.5)*40,y,vx:(Math.random()-.5)*140,vy:-Math.random()*120-20,life:.4+Math.random()*.3,t:0,r:3+Math.random()*3,c:'dust'});
+}
+function burst(x,y,n,c){
+  for(let i=0;i<n;i++){const a=Math.random()*7,s=90+Math.random()*200;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-60,life:.5+Math.random()*.5,t:0,r:2.5+Math.random()*3.5,c});}
+}
+function rainConfetti(n){
+  const cols=['#FFD97A','#FF8FA3','#8AD7C1','#9FB8FF','#FFB26B'];
+  for(let i=0;i<n;i++) confetti.push({x:Math.random()*W,y:-20-Math.random()*200,vy:120+Math.random()*160,vx:(Math.random()-.5)*60,rot:Math.random()*7,vr:(Math.random()-.5)*8,w:6+Math.random()*6,h:4+Math.random()*5,c:cols[i%cols.length]});
+}
+function floatText(x,y,text,size,color){ floaters.push({x,y,text,size,color,t:0,life:1.8}); }
+function updateFx(dt){
+  for(let i=particles.length-1;i>=0;i--){const d=particles[i];d.t+=dt;
+    if(d.t>=d.life){particles.splice(i,1);continue;}
+    d.x+=d.vx*dt;d.y+=d.vy*dt;d.vy+=300*dt;}
+  for(let i=confetti.length-1;i>=0;i--){const c=confetti[i];
+    c.y+=c.vy*dt;c.x+=c.vx*dt+Math.sin(c.rot)*20*dt;c.rot+=c.vr*dt;
+    if(c.y>H+20)confetti.splice(i,1);}
+  for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.t+=dt;f.y-=24*dt;
+    if(f.t>=f.life)floaters.splice(i,1);}
+}
+
+// ============================================================
+// DRAW
+// ============================================================
+function draw(t){
+  // céu
+  const sky = ctx.createLinearGradient(0,0,0,GROUND_Y);
+  sky.addColorStop(0,'#1E2A56'); sky.addColorStop(.45,'#4A3F7E');
+  sky.addColorStop(.78,'#9A5B8F'); sky.addColorStop(1,'#E8875F');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,GROUND_Y);
+
+  for (const s of stars){
+    const a = .3 + .4*Math.abs(Math.sin(t*.8 + s.ph)) * (1 - s.y/(H*.45));
+    ctx.fillStyle = `rgba(255,240,220,${a})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+  }
+  const sunX = 130, sunY = GROUND_Y - 66;
+  const halo = ctx.createRadialGradient(sunX,sunY,10,sunX,sunY,260);
+  halo.addColorStop(0,'rgba(255,196,120,.5)'); halo.addColorStop(1,'rgba(255,196,120,0)');
+  ctx.fillStyle = halo; ctx.fillRect(0,0,W,GROUND_Y);
+  ctx.fillStyle = '#FFD9A0'; ctx.beginPath(); ctx.arc(sunX,sunY,40,0,7); ctx.fill();
+  ctx.fillStyle = '#FFEFD0'; ctx.beginPath(); ctx.arc(sunX-10,sunY-10,24,0,7); ctx.fill();
+
+  hillLayer(GROUND_Y, '#6E5580', .35, 78, t*2);
+  hillLayer(GROUND_Y, '#4B3F63', .55, 108, -t*1.2);
+  hillLayer(GROUND_Y, '#33304E', .8, 140, t*.6);
+
+  // chão
+  const gr = ctx.createLinearGradient(0,GROUND_Y,0,H);
+  gr.addColorStop(0,'#2E4A3C'); gr.addColorStop(1,'#1C2E26');
+  ctx.fillStyle = gr; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+  ctx.fillStyle = '#3E6B4F'; ctx.fillRect(0,GROUND_Y,W,8);
+  ctx.strokeStyle = '#4C7D5C'; ctx.lineWidth = 2; ctx.lineCap='round';
+  for (let i=0;i<30;i++){
+    const gx = (i*137+20)%W, sway = Math.sin(t*1.5+i)*2;
+    ctx.beginPath(); ctx.moveTo(gx, GROUND_Y+6);
+    ctx.quadraticCurveTo(gx+sway, GROUND_Y-4, gx+sway*2, GROUND_Y-10); ctx.stroke();
+  }
+
+  // plataformas
+  for (const pl of platforms){
+    if (pl.ground) continue;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    roundRect(pl.x, pl.y, pl.w, pl.h, 12, '#3A3357'); ctx.restore();
+    roundRect(pl.x, pl.y, pl.w, 7, 7, '#6C5B92');
+    ctx.fillStyle = '#8AD7C1';
+    ctx.beginPath(); ctx.arc(pl.x+13, pl.y+pl.h/2+2, 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(pl.x+pl.w-13, pl.y+pl.h/2+2, 3, 0, 7); ctx.fill();
+  }
+
+  // ---- casas das famílias (com o exemplar adulto dentro) ----
+  if (game.state === 'play' || game.state === 'celebrate'){
+    for (const casa of casas) drawHouse(casa, t);
+  }
+
+  // vagalumes
+  for (const f of fireflies){
+    const glow = .35+.45*Math.abs(Math.sin(f.ph*1.4));
+    const g = ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,9);
+    g.addColorStop(0,`rgba(255,230,140,${glow})`); g.addColorStop(1,'rgba(255,230,140,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x,f.y,9,0,7); ctx.fill();
+    ctx.fillStyle = `rgba(255,246,200,${glow+.2})`;
+    ctx.beginPath(); ctx.arc(f.x,f.y,1.6,0,7); ctx.fill();
+  }
+
+  // bichos já na família (filhotes em fila na frente da casa)
+  if (game.state === 'play' || game.state === 'celebrate'){
+    for (const c of critters){
+      if (c.state !== 'sorted') continue;
+      const idx = houseOrder(c);
+      const bx = c.house.cx - 34 + idx*30;
+      const hop = game.state==='celebrate' ? Math.abs(Math.sin(t*6 + bx))*4 : 0;
+      drawAnimal(c.type, bx, GROUND_Y-2-hop, t, false, 0, .5, false);
+    }
+  }
+
+  // bichos boiando (o mais luminoso da cena)
+  if (game.state === 'play'){
+    for (const c of critters){
+      if (c.state !== 'float') continue;
+      const s = SPOTS[c.spot];
+      const ly = s.y + Math.sin(c.bob)*(REDUCED?1:5);
+      const wob = c.wobble>0 ? Math.sin(c.wobble*30)*.12 : 0;
+      const g = ctx.createRadialGradient(s.x,ly-16,6,s.x,ly-16,44);
+      g.addColorStop(0,'rgba(255,214,140,.42)'); g.addColorStop(1,'rgba(255,214,140,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,ly-16,44,0,7); ctx.fill();
+      ctx.save(); ctx.translate(s.x, ly); ctx.rotate(wob); ctx.translate(-s.x, -ly);
+      drawAnimal(c.type, s.x, ly, t, false, 0, .8, false);
+      ctx.restore();
+    }
+  }
+
+  for (const d of particles){
+    const a = 1-d.t/d.life;
+    ctx.fillStyle = d.c==='gold' ? `rgba(255,205,110,${a})`
+                  : d.c==='spark'? `rgba(255,255,255,${a})`
+                  : `rgba(210,200,190,${.6*a})`;
+    ctx.beginPath(); ctx.arc(d.x,d.y,d.r*(0.5+0.5*a),0,7); ctx.fill();
+  }
+
+  if (game.state !== 'title') drawRobot(player, t);
+
+  // bicho carregado + a ficha de traços que acende
+  if (carried && game.state === 'play'){
+    const cx = player.x + player.w/2;
+    const cy = player.y - 14 + Math.sin(carried.cbob)*2.5;
+    const g = ctx.createRadialGradient(cx,cy-10,4,cx,cy-10,38);
+    g.addColorStop(0,'rgba(255,214,140,.4)'); g.addColorStop(1,'rgba(255,214,140,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy-10,38,0,7); ctx.fill();
+    drawAnimal(carried.type, cx, cy, t, false, 0, .52, true);
+    drawRevealCard(cx, player.y - 42, carried.group);
+  }
+
+  for (const c of confetti){
+    ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.rot);
+    ctx.fillStyle = c.c; ctx.fillRect(-c.w/2,-c.h/2,c.w,c.h); ctx.restore();
+  }
+  for (const f of floaters){
+    const a = Math.min(1, (f.life-f.t)/.5);
+    ctx.textAlign='center';
+    ctx.font = `bold ${f.size}px "Arial Rounded MT Bold","Trebuchet MS",sans-serif`;
+    ctx.globalAlpha = a;
+    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(40,25,60,.7)';
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+    ctx.globalAlpha = 1;
+  }
+
+  if (game.state === 'play' || game.state === 'celebrate') drawProgress();
+
+  const vg = ctx.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,H*.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(10,8,25,.35)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+
+  if (game.state === 'title') drawTitle(t);
+  if (game.state === 'finale') drawFinale(t);
+}
+
+function houseOrder(c){
+  let n = 0;
+  for (const k of critters){
+    if (k === c) return n;
+    if (k.state === 'sorted' && k.house === c.house) n++;
+  }
+  return n;
+}
+
+// ---------- casa da família (exemplar adulto + ícone da cobertura) ----------
+function drawHouse(casa, t){
+  const g = GRUPOS[casa.key];
+  const cx = casa.cx, bw = 104, bh = 60;
+  const bx = cx - bw/2, by = GROUND_Y - bh;
+
+  // exemplar adulto, atrás do cesto (a "mamãe" da família)
+  drawAnimal(g.exemplar, cx, GROUND_Y - 20, t, false, 0, 1.25, false);
+
+  // cesto por cima (esconde a metade de baixo do adulto: ele "mora" aqui)
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=16; ctx.shadowOffsetY=8;
+  roundRect(bx, by, bw, bh, 14, 'rgba(38,42,72,.9)'); ctx.restore();
+  roundRect(bx, by, bw, 12, 8, 'rgba(120,110,158,.9)');
+  ctx.strokeStyle='rgba(255,190,120,.45)'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(bx+3,by+bh-8); ctx.quadraticCurveTo(bx,by+8,bx+12,by+3); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=2;
+  for (let i=1;i<3;i++){ ctx.beginPath(); ctx.moveTo(bx+6,by+14+i*14); ctx.lineTo(bx+bw-6,by+14+i*14); ctx.stroke(); }
+
+  // ícone-fantasma da cobertura, brilhando bem acima do exemplar
+  const iconY = by - 48;
+  const g2 = ctx.createRadialGradient(cx,iconY,4,cx,iconY,32);
+  g2.addColorStop(0,'rgba(255,224,150,.5)'); g2.addColorStop(1,'rgba(255,224,150,0)');
+  ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(cx,iconY,32,0,7); ctx.fill();
+  drawTraitIcon(g.cobertura, cx, iconY, 1);
+}
+
+// ---------- a ficha de traços do bicho carregado ----------
+function drawRevealCard(cx, bottomY, group){
+  const g = GRUPOS[group];
+  const kinds = [g.cobertura, g.nasce, g.move];
+  const w = 94, h = 34, x = cx - w/2, y = bottomY - h;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=12; ctx.shadowOffsetY=4;
+  roundRect(x, y, w, h, 10, 'rgba(28,22,52,.92)'); ctx.restore();
+  ctx.strokeStyle='rgba(255,210,140,.45)'; ctx.lineWidth=1.4;
+  roundRectPath(x, y, w, h, 10); ctx.stroke();
+  const pos = [x + w*0.2, x + w*0.5, x + w*0.8];
+  kinds.forEach((k,i) => drawTraitIcon(k, pos[i], y + h/2, .74));
+  // seta apontando para o bicho embaixo
+  ctx.fillStyle='rgba(28,22,52,.92)';
+  ctx.beginPath(); ctx.moveTo(cx-6,y+h-1); ctx.lineTo(cx+6,y+h-1); ctx.lineTo(cx,y+h+7); ctx.closePath(); ctx.fill();
+}
+
+// ---------- ícones de traço ----------
+function drawTraitIcon(kind, x, y, sc){
+  if (kind==='penas'){ drawFeatherIcon(x, y, sc*.5, 1); return; }
+  if (kind==='pelos'){ drawFurIcon(x, y, sc*.55, 1); return; }
+  ctx.save(); ctx.translate(x,y); ctx.scale(sc,sc);
+  if (kind==='escamas'){
+    ctx.fillStyle='#9AD0E8'; ctx.strokeStyle='#5E97B8'; ctx.lineWidth=1;
+    for (let r=0;r<2;r++) for (let c=0;c<3;c++){
+      const ox=-8+c*8+(r?4:0), oy=-5+r*7;
+      ctx.beginPath(); ctx.arc(ox,oy,5,Math.PI*.12,Math.PI*.88); ctx.fill(); ctx.stroke();
+    }
+  } else if (kind==='ovo'){
+    const g=ctx.createLinearGradient(0,-12,0,12); g.addColorStop(0,'#FFFDF6'); g.addColorStop(1,'#EFDFBC');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,1,8,11,0,0,7); ctx.fill();
+    ctx.strokeStyle='#D9B87C'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.ellipse(0,1,8,11,0,0,7); ctx.stroke();
+  } else if (kind==='barriga'){ // coração: nasce da barriga da mãe
+    ctx.fillStyle='#F0849A';
+    ctx.beginPath(); ctx.moveTo(0,10);
+    ctx.bezierCurveTo(-13,-1,-8,-13,0,-5);
+    ctx.bezierCurveTo(8,-13,13,-1,0,10); ctx.fill();
+  } else if (kind==='voa'){ // asa
+    ctx.fillStyle='#D4E6F4'; ctx.strokeStyle='#8FB8D8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(-11,-1);
+    ctx.quadraticCurveTo(1,-13,12,-2);
+    ctx.quadraticCurveTo(2,3,-11,-1); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-2,-6); ctx.lineTo(-2,2); ctx.moveTo(4,-6); ctx.lineTo(4,1); ctx.stroke();
+  } else if (kind==='anda'){ // patinha
+    ctx.fillStyle='#D6A876';
+    ctx.beginPath(); ctx.ellipse(0,4,6,5,0,0,7); ctx.fill();
+    for (const dx of [-5,-1.7,1.7,5]){ ctx.beginPath(); ctx.arc(dx,-4,2.1,0,7); ctx.fill(); }
+  } else if (kind==='nada'){ // nadadeira
+    ctx.fillStyle='#79B0DC';
+    ctx.beginPath(); ctx.moveTo(-10,5); ctx.quadraticCurveTo(0,-12,10,5);
+    ctx.quadraticCurveTo(0,-1,-10,5); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawFeatherIcon(x, y, sc, alpha){
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(sc,sc); ctx.rotate(-.35);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#FFF3D6';
+  ctx.beginPath(); ctx.ellipse(0,0,9,20,0,0,7); ctx.fill();
+  ctx.strokeStyle = '#D9A85C'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.ellipse(0,0,9,20,0,0,7); ctx.stroke();
+  ctx.strokeStyle = '#C98F44'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(0,24); ctx.stroke();
+  ctx.lineWidth = 1;
+  for (let i=-3;i<=3;i++){
+    const yy=i*4.5;
+    ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(-7,yy-4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(7,yy-4); ctx.stroke();
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+function drawFurIcon(x, y, sc, alpha){
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(sc,sc);
+  ctx.globalAlpha = alpha;
+  const r = 13, n = 26;
+  ctx.strokeStyle = '#E7C89A'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  for (let i=0;i<n;i++){
+    const a = (i/n)*Math.PI*2;
+    const spike = 5 + 2.4*Math.sin(i*1.7);
+    const bx = Math.cos(a)*(r-2), by = Math.sin(a)*(r-2);
+    const tx = Math.cos(a)*(r+spike), ty = Math.sin(a)*(r+spike);
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(tx,ty); ctx.stroke();
+  }
+  const body = ctx.createRadialGradient(-4,-5,3,0,0,r);
+  body.addColorStop(0,'#FFF3D6'); body.addColorStop(1,'#EAD0A2');
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+  ctx.strokeStyle = '#D9A85C'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.beginPath(); ctx.ellipse(-5,-5,4,3,-.5,0,7); ctx.fill();
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+
+// ---------- progresso ----------
+function drawProgress(){
+  const total = game.needToSort;
+  const done = critters.filter(c => c.state==='sorted').length;
+  const y = 30;
+  for (let i=0;i<total;i++){
+    const dx = W/2 - (total-1)*13 + i*26;
+    ctx.fillStyle = i < done ? '#FFD97A' : 'rgba(255,255,255,.22)';
+    ctx.beginPath(); ctx.ellipse(dx, y, 6, 5, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx-4, y-7, 2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx+4, y-7, 2, 0, 7); ctx.fill();
+  }
+}
+
+// ---------- robô ----------
+function drawRobot(p, t){
+  const cx = p.x+p.w/2, feetY = p.y+p.h;
+  ctx.save();
+  ctx.translate(cx, feetY); ctx.scale(p.squashX, p.squashY); ctx.translate(-p.w/2, -p.h);
+  const bodyW=p.w, bodyH=34, headW=38, headH=26;
+  const walking = p.grounded && Math.abs(p.vx)>20;
+  const legLift = walking ? Math.sin(p.walkPhase)*5 : 0;
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(bodyW/2,p.h-1,bodyW*.55,5,0,0,7); ctx.fill();
+  ctx.fillStyle='#2E4468';
+  roundRectPath(bodyW/2-16,p.h-14-Math.max(0,legLift),12,14,4); ctx.fill();
+  roundRectPath(bodyW/2+4, p.h-14-Math.max(0,-legLift),12,14,4); ctx.fill();
+  ctx.fillStyle='#22314E';
+  roundRectPath(bodyW/2-19,p.h-6-Math.max(0,legLift),18,6,3); ctx.fill();
+  roundRectPath(bodyW/2+1, p.h-6-Math.max(0,-legLift),18,6,3); ctx.fill();
+  const bodyY = p.h-14-bodyH;
+  const bg = ctx.createLinearGradient(0,bodyY,0,bodyY+bodyH);
+  bg.addColorStop(0,'#5C8FDA'); bg.addColorStop(1,'#31518F');
+  ctx.fillStyle=bg; roundRectPath(0,bodyY,bodyW,bodyH,10); ctx.fill();
+  ctx.strokeStyle='rgba(255,190,120,.55)'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(3,bodyY+bodyH-6); ctx.quadraticCurveTo(0,bodyY+6,10,bodyY+2); ctx.stroke();
+  roundRect(bodyW/2-11,bodyY+13,22,14,5,'#E8EEFF');
+  ctx.save(); ctx.shadowColor='#7CF2B0'; ctx.shadowBlur=10; ctx.fillStyle='#7CF2B0';
+  ctx.beginPath(); ctx.arc(bodyW/2,bodyY+20,4+Math.sin(t*3)*.8,0,7); ctx.fill(); ctx.restore();
+  const armSwing = walking ? Math.sin(p.walkPhase)*8 : Math.sin(t*2)*2;
+  ctx.fillStyle='#3A6AB5';
+  roundRectPath(-7,bodyY+8+armSwing,9,20,4); ctx.fill();
+  roundRectPath(bodyW-2,bodyY+8-armSwing,9,20,4); ctx.fill();
+  ctx.fillStyle='#F2B457';
+  roundRectPath(-9,bodyY+3+armSwing,14,9,4); ctx.fill();
+  roundRectPath(bodyW-5,bodyY+3-armSwing,14,9,4); ctx.fill();
+  const headX=bodyW/2-headW/2, headY=bodyY-headH-3;
+  const hg = ctx.createLinearGradient(0,headY,0,headY+headH);
+  hg.addColorStop(0,'#6BA0E8'); hg.addColorStop(1,'#3D64AC');
+  ctx.fillStyle=hg; roundRectPath(headX,headY,headW,headH,9); ctx.fill();
+  ctx.strokeStyle='rgba(255,190,120,.5)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(headX+2,headY+headH-4); ctx.quadraticCurveTo(headX,headY+4,headX+8,headY+1); ctx.stroke();
+  ctx.fillStyle='#F2B457';
+  roundRectPath(headX-5,headY+8,5,10,2); ctx.fill();
+  roundRectPath(headX+headW,headY+8,5,10,2); ctx.fill();
+  const bob = Math.sin(p.antennaBob)*2 + (p.grounded?0:-3);
+  ctx.strokeStyle='#2E4468'; ctx.lineWidth=3; ctx.lineCap='round';
+  for (const off of [-6,6]){
+    ctx.beginPath(); ctx.moveTo(bodyW/2+off,headY); ctx.lineTo(bodyW/2+off+bob,headY-10); ctx.stroke();
+    ctx.save(); ctx.shadowColor='#FFD97A'; ctx.shadowBlur=8; ctx.fillStyle='#FFD97A';
+    ctx.beginPath(); ctx.arc(bodyW/2+off+bob,headY-13,4.5,0,7); ctx.fill(); ctx.restore();
+  }
+  const lookX = p.facing*Math.min(3,Math.abs(p.vx)/60);
+  const lookY = p.vy<-50?-2:(p.vy>120?2:0);
+  const eyeH = p.blinking>0?1.5:8;
+  for (const side of [-1,1]){
+    const ex=bodyW/2+side*9, ey=headY+14;
+    ctx.fillStyle='#FFFFFF';
+    ctx.beginPath(); ctx.ellipse(ex,ey,7.5,eyeH,0,0,7); ctx.fill();
+    if (p.blinking<=0){
+      ctx.fillStyle='#1C2740';
+      ctx.beginPath(); ctx.arc(ex+lookX,ey+lookY,3.6,0,7); ctx.fill();
+      ctx.fillStyle='#FFF';
+      ctx.beginPath(); ctx.arc(ex+lookX-1.2,ey+lookY-1.2,1.3,0,7); ctx.fill();
+    }
+  }
+  ctx.strokeStyle='#1C2740'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(bodyW/2,headY+19.5,5,.15*Math.PI,.85*Math.PI); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- bichos ----------
+function drawAnimal(type, x, groundY, t, walking, walkPh, scale, noShadow){
+  scale = scale || 1;
+  const hop = walking ? Math.abs(Math.sin(walkPh||0))*4 : 0;
+  const breathe = Math.sin(t*2 + x)*1.5;
+  ctx.save();
+  ctx.translate(x, groundY - hop); ctx.scale(scale, scale);
+  if (!noShadow){
+    ctx.fillStyle='rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(0,0,30,5,0,0,7); ctx.fill();
+  }
+
+  if (type==='gato'){
+    ctx.fillStyle='#E8934A';
+    ctx.beginPath(); ctx.ellipse(0,-20+breathe*.3,24,18,0,0,7); ctx.fill();
+    ctx.strokeStyle='#E8934A'; ctx.lineWidth=6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(20,-24); ctx.quadraticCurveTo(38,-30+Math.sin(t*3)*4,34,-48); ctx.stroke();
+    ctx.fillStyle='#F2A96B';
+    ctx.beginPath(); ctx.arc(-14,-40+breathe*.3,15,0,7); ctx.fill();
+    ctx.fillStyle='#E8934A';
+    tri(-24,-50,-19,-62,-13,-51); tri(-14,-52,-9,-63,-3,-51);
+    ctx.fillStyle='#2A1F14';
+    ctx.beginPath(); ctx.arc(-19,-42,2.2,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-9,-42,2.2,0,7); ctx.fill();
+    ctx.fillStyle='#C9605B'; tri(-16,-37,-12,-37,-14,-34);
+    ctx.strokeStyle='#2A1F14'; ctx.lineWidth=1.2;
+    for (const s of [-1,1]) for (let i=0;i<2;i++){
+      ctx.beginPath(); ctx.moveTo(-14+s*6,-36+i*3); ctx.lineTo(-14+s*16,-37+i*4); ctx.stroke();
+    }
+    ctx.strokeStyle='#C9722E'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(4,-34); ctx.quadraticCurveTo(8,-28,4,-22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(12,-32); ctx.quadraticCurveTo(16,-26,12,-20); ctx.stroke();
+  }
+  if (type==='pato'){
+    ctx.fillStyle='#F5D563';
+    ctx.beginPath(); ctx.ellipse(2,-18+breathe*.3,20,15,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-14,-36+breathe*.3,12,0,7); ctx.fill();
+    ctx.fillStyle='#E8C14E';
+    ctx.beginPath(); ctx.ellipse(6,-18,11,8,-.3,0,7); ctx.fill();
+    ctx.fillStyle='#EE8B3A';
+    ctx.beginPath(); ctx.ellipse(-27,-34,7,4,0,0,7); ctx.fill();
+    ctx.fillStyle='#2A1F14';
+    ctx.beginPath(); ctx.arc(-17,-39,2.2,0,7); ctx.fill();
+    ctx.strokeStyle='#EE8B3A'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-4,-4); ctx.lineTo(-4,0); ctx.moveTo(8,-4); ctx.lineTo(8,0); ctx.stroke();
+  }
+  if (type==='passarinho'){
+    ctx.fillStyle='#7FB3D5';
+    ctx.beginPath(); ctx.ellipse(2,-16+breathe*.3,15,12,0,0,7); ctx.fill();
+    ctx.fillStyle='#5D8CB0'; tri(14,-16,30,-22,28,-10);
+    ctx.fillStyle='#7FB3D5';
+    ctx.beginPath(); ctx.arc(-11,-26+breathe*.3,9,0,7); ctx.fill();
+    ctx.fillStyle='#5D8CB0';
+    ctx.beginPath(); ctx.ellipse(4,-16,8,6,-.3,0,7); ctx.fill();
+    ctx.fillStyle='#F0A030'; tri(-19,-27,-27,-25,-19,-23);
+    ctx.fillStyle='#EFE9DA';
+    ctx.beginPath(); ctx.ellipse(-2,-12,7,6,0,0,7); ctx.fill();
+    ctx.fillStyle='#2A1F14';
+    ctx.beginPath(); ctx.arc(-13,-27,2,0,7); ctx.fill();
+    ctx.strokeStyle='#F0A030'; ctx.lineWidth=2.4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-2,-4); ctx.lineTo(-2,0); ctx.moveTo(6,-4); ctx.lineTo(6,0); ctx.stroke();
+  }
+  if (type==='coelho'){
+    ctx.fillStyle='#D9CBB8';
+    ctx.beginPath(); ctx.ellipse(0,-18+breathe*.3,19,15,0,0,7); ctx.fill();
+    ctx.fillStyle='#FBF5EC';
+    ctx.beginPath(); ctx.arc(17,-14,6,0,7); ctx.fill();
+    ctx.fillStyle='#D9CBB8';
+    ctx.beginPath(); ctx.arc(-12,-38+breathe*.3,13,0,7); ctx.fill();
+    ctx.save(); ctx.translate(-12,-46);
+    for (const o of [-7,4]){
+      ctx.fillStyle='#D9CBB8';
+      ctx.save(); ctx.translate(o,0); ctx.rotate(o<0?-.2:.15);
+      roundRectPath(-4,-24,8,26,4); ctx.fill();
+      ctx.fillStyle='#F0BFC6'; roundRectPath(-2,-20,4,18,2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.fillStyle='#2A1F14'; ctx.beginPath(); ctx.arc(-16,-40,2.3,0,7); ctx.fill();
+    ctx.fillStyle='#C97F8A'; ctx.beginPath(); ctx.arc(-22,-36,2,0,7); ctx.fill();
+    ctx.strokeStyle='#2A1F14'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(-22,-35); ctx.lineTo(-31,-36); ctx.moveTo(-22,-34); ctx.lineTo(-31,-32); ctx.stroke();
+  }
+  if (type==='urso'){
+    ctx.fillStyle='#9A6B45';
+    ctx.beginPath(); ctx.ellipse(0,-22+breathe*.3,26,21,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-12,-46+breathe*.3,16,0,7); ctx.fill();
+    ctx.fillStyle='#7E5433';
+    ctx.beginPath(); ctx.arc(-24,-58,6,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-2,-59,6,0,7); ctx.fill();
+    ctx.fillStyle='#C99B6F';
+    ctx.beginPath(); ctx.ellipse(-16,-41,8,6,0,0,7); ctx.fill();
+    ctx.fillStyle='#2A1F14';
+    ctx.beginPath(); ctx.arc(-19,-43,2.6,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-18,-49,2.2,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-6,-49,2.2,0,7); ctx.fill();
+    ctx.fillStyle='#C99B6F';
+    ctx.beginPath(); ctx.ellipse(2,-18,13,11,0,0,7); ctx.fill();
+  }
+  if (type==='peixe' || type==='peixe2'){
+    const col  = type==='peixe2' ? '#6FA8D8' : '#E8934A';
+    const col2 = type==='peixe2' ? '#4E86B8' : '#C9722E';
+    ctx.fillStyle=col2; tri(15,-20,32,-30,32,-10);            // cauda
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.ellipse(0,-20+breathe*.3,22,14,0,0,7); ctx.fill(); // corpo
+    ctx.fillStyle=col2; tri(-1,-33,9,-33,4,-26);              // barbatana de cima
+    tri(0,-8,8,-8,4,-14);                                     // barbatana de baixo
+    ctx.strokeStyle=col2; ctx.lineWidth=1.3;                  // escamas
+    for (let r=0;r<3;r++) for (let c=0;c<2;c++){
+      ctx.beginPath(); ctx.arc(-6+r*8,-24+c*8,4,-.6,.8); ctx.stroke();
+    }
+    ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.arc(-14,-22,3,0,7); ctx.fill();
+    ctx.fillStyle='#2A1F14'; ctx.beginPath(); ctx.arc(-15,-22,1.6,0,7); ctx.fill();
+    ctx.strokeStyle=col2; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(-21,-18); ctx.lineTo(-17,-17); ctx.stroke();
+  }
+  ctx.restore();
+
+  function tri(x1,y1,x2,y2,x3,y3){
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// ---------- telas ----------
+function drawTitle(t){
+  ctx.fillStyle='rgba(12,10,30,.45)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.font='bold 48px "Arial Rounded MT Bold","Trebuchet MS",sans-serif';
+  ctx.lineWidth=10; ctx.strokeStyle='rgba(40,25,60,.8)';
+  ctx.strokeText('Reino Animal', W/2, H/2-54);
+  ctx.fillStyle='#FFE9BE'; ctx.fillText('Reino Animal', W/2, H/2-54);
+  ctx.font='bold 24px "Arial Rounded MT Bold","Trebuchet MS",sans-serif';
+  ctx.fillStyle='#C9E4D6'; ctx.fillText('as famílias dos bichos', W/2, H/2-22);
+  drawAnimal('pato',   W/2-150, H/2+66, t, false, 0, .95, false);
+  drawAnimal('gato',   W/2,     H/2+66, t, false, 0, .95, false);
+  drawAnimal('peixe2', W/2+150, H/2+66, t, false, 0, .95, false);
+  const a = .6+.4*Math.sin(t*3);
+  ctx.font='bold 20px "Arial Rounded MT Bold","Trebuchet MS",sans-serif';
+  ctx.fillStyle=`rgba(255,235,190,${a})`;
+  ctx.fillText('aperte qualquer tecla para começar', W/2, H/2+116);
+}
+function drawFinale(t){
+  ctx.textAlign='center';
+  ctx.font='bold 46px "Arial Rounded MT Bold","Trebuchet MS",sans-serif';
+  ctx.lineWidth=9; ctx.strokeStyle='rgba(40,25,60,.8)';
+  const bounce = Math.sin(t*4)*5;
+  ctx.strokeText('Parabéns! 🎉', W/2, 160+bounce);
+  ctx.fillStyle='#FFD97A'; ctx.fillText('Parabéns! 🎉', W/2, 160+bounce);
+  ctx.font='bold 19px "Arial Rounded MT Bold","Trebuchet MS",sans-serif';
+  ctx.fillStyle='rgba(255,235,190,.85)';
+  ctx.fillText('cada bicho na sua família — aperte ENTER para jogar de novo', W/2, 196);
+  if (Math.random()<.05) rainConfetti(6);
+}
+
+// ---------- helpers ----------
+function hillLayer(baseY, color, alpha, amp, drift){
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(-20, baseY);
+  for (let x=-20; x<=W+20; x+=10){
+    const yy = baseY - Math.abs(Math.sin((x+drift)*.006))*amp - amp*.2;
+    ctx.lineTo(x, yy);
+  }
+  ctx.lineTo(W+20, baseY); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function easeOut(k){ k=Math.min(1,k); return 1-Math.pow(1-k,3); }
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function roundRect(x,y,w,h,r,color){ ctx.fillStyle=color; roundRectPath(x,y,w,h,r); ctx.fill(); }
+</script>
+</body>
+</html>
