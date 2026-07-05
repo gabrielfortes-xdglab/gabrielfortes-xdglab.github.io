@@ -1,9 +1,10 @@
 ---
-pagetitle: "Ferramentas — xdG lab"
+pagetitle: "Ferramentas — xdG:Lab"
 ---
 
 ```{=html}
 <div class="band inner">
+  <svg class="flownet" data-animate="none" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true"></svg>
   <div class="wrap band-inner">
     <div class="kicker">Abertas · grátis · sem login</div>
     <h1>Ferramentas</h1>

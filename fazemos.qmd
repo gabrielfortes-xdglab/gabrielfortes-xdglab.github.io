@@ -1,32 +1,33 @@
 ---
-pagetitle: "O que fazemos — xdG lab"
+pagetitle: "O que fazemos — xdG:Lab"
 ---
 
 ```{=html}
 <div class="band inner">
+  <svg class="flownet" data-animate="none" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true"></svg>
   <div class="wrap band-inner">
-    <div class="kicker">Três frentes</div>
-    <h1>O que fazemos</h1>
-    <p>Uma mesma dupla atravessando ferramenta, dado e pesquisa.</p>
+    <div class="kicker">Três frentes · uma mesma lógica</div>
+    <h1>O que construímos</h1>
+    <p>A ciência cognitiva como material de projeto.</p>
   </div>
 </div>
 
 <div class="wrap body-wrap">
-  <div class="frentes-grid">
-    <div class="frente">
-      <div class="n">01 / Soluções</div>
-      <h3>Ferramentas digitais</h3>
-      <p>Aplicações abertas para a sala de aula, a gestão e a pesquisa. Cada uma hospedada e mantida no ar por nós.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="chip">educação</span>
+      <h3>Soluções educacionais</h3>
+      <p>Jogos, simuladores e materiais interativos com carga cognitiva calibrada, feedback imediato e erro que ensina.</p>
     </div>
-    <div class="frente">
-      <div class="n">02 / Experimentos</div>
-      <h3>Dados &amp; narrativa</h3>
-      <p>Visualização e storytelling com dados públicos, explorando formas de contar que não cabem nos formatos de sempre.</p>
+    <div class="card">
+      <span class="chip">psicologia</span>
+      <h3>Ferramentas psicológicas</h3>
+      <p>Instrumentos digitais para a formação e a prática: protocolos de acolhimento, guias clínicos e apoios à supervisão.</p>
     </div>
-    <div class="frente">
-      <div class="n">03 / Pesquisa</div>
-      <h3>Cognição e educação</h3>
-      <p>Projetos e publicações na fronteira entre psicologia cognitiva, argumentação, autorregulação da aprendizagem e educação em computação.</p>
+    <div class="card">
+      <span class="chip">dados</span>
+      <h3>Dados que contam histórias</h3>
+      <p>Análise, visualização e scrollytelling para transformar bases educacionais e psicossociais em evidência legível.</p>
     </div>
   </div>
 </div>

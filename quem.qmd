@@ -1,34 +1,39 @@
 ---
-pagetitle: "Quem somos — xdG lab"
+pagetitle: "Quem somos — xdG:Lab"
 ---
 
 ```{=html}
 <div class="band inner">
+  <svg class="flownet" data-animate="none" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true"></svg>
   <div class="wrap band-inner">
-    <div class="kicker">A dupla</div>
+    <div class="kicker">A iniciativa</div>
     <h1>Quem somos</h1>
-    <p>Dois pesquisadores que constroem o que usam. Já colaboram há anos em educação, autorregulação da aprendizagem e ensino de programação.</p>
+    <p>Pesquisa que sai do laboratório e chega a quem ensina, cuida e decide.</p>
   </div>
 </div>
 
 <div class="wrap body-wrap">
-  <div class="duo">
-    <div class="person">
-      <div class="mark">GF</div>
-      <div>
-        <h4>Gabriel Fortes</h4>
-        <div class="role">UFAL · Cognição &amp; Educação</div>
-        <p>Psicologia cognitiva aplicada, argumentação e desigualdades educacionais. Trabalha com autorregulação da aprendizagem, ensino deliberativo e visualização de dados com foco em impacto social.</p>
-        <a class="scholar" href="https://scholar.google.com/citations?user=UhcAJbIAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
-      </div>
+  <div class="initiative">
+    <div>
+      <h2>Pesquisa que sai do laboratório</h2>
+      <p>O <strong>xdG:Lab</strong> é uma iniciativa de professores doutores para levar suas soluções a mais pessoas — o que nasce na pesquisa em cognição, educação e psicologia vira ferramenta aberta, na mão de quem ensina, cuida e decide.</p>
     </div>
-    <div class="person">
-      <div class="mark">LS</div>
-      <div>
-        <h4>Leonardo Soares e Silva</h4>
-        <div class="role">IFPE · Educação em Computação</div>
-        <p>Pesquisa ensino de programação, autorregulação da aprendizagem e aprendizagem colaborativa apoiada por computador (CSCL). Constrói scaffolds computacionais e assistentes para estudantes iniciantes.</p>
-        <a class="scholar" href="https://scholar.google.com/citations?user=sonI9rQAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
+    <div class="founders">
+      <div class="founder">
+        <div class="avatar">G</div>
+        <div>
+          <b>Gabriel Fortes</b>
+          <span>Professor doutor · cognição, educação e dados</span><br>
+          <a class="scholar" href="https://scholar.google.com/citations?user=UhcAJbIAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
+        </div>
+      </div>
+      <div class="founder">
+        <div class="avatar">L</div>
+        <div>
+          <b>Leonardo Soares e Silva</b>
+          <span>Professor doutor · soluções digitais e análise</span><br>
+          <a class="scholar" href="https://scholar.google.com/citations?user=sonI9rQAAAAJ&hl=pt-BR" target="_blank">Google Scholar →</a>
+        </div>
       </div>
     </div>
   </div>

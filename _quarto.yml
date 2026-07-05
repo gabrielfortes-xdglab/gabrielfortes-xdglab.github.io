@@ -5,8 +5,14 @@ project:
     - jogos/
 
 website:
-  title: "xdG lab"
-  site-url: "https://xdglab.dev"
+  title: "xdG:Lab"
+  # trocar para https://xdglab.dev quando o domínio estiver no ar
+  site-url: "https://gabrielfortes-xdglab.github.io"
+  favicon: assets/favicon.svg
+  image: assets/og.png
+  open-graph: true
+  twitter-card: true
+  search: false
   navbar:
     pinned: true
     left:
@@ -19,7 +25,7 @@ website:
       - text: "Quem somos"
         href: quem.qmd
   page-footer:
-    left: "xdG lab · xdglab.dev"
+    left: "xdG:Lab · xdglab.dev"
     right: "Gabriel Fortes · Leonardo Soares e Silva"
 
 format:
@@ -28,3 +34,4 @@ format:
     page-layout: full
     toc: false
     lang: pt-BR
+    include-after-body: assets/after-body.html

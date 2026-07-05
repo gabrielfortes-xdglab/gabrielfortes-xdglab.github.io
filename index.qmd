@@ -1,23 +1,32 @@
 ---
-pagetitle: "xdG lab — ferramentas digitais para ensino, pesquisa e dados"
+pagetitle: "xdG:Lab — soluções digitais construídas com ciências cognitivas"
 ---
 
 ```{=html}
 <div class="band home">
-  <svg class="motif" width="560" height="560" viewBox="0 0 560 560" fill="none" aria-hidden="true">
-    <circle cx="280" cy="280" r="210" stroke="#FF6A4D" stroke-width="2" opacity="0.5"/>
-    <circle cx="360" cy="220" r="155" fill="#FF6A4D" opacity="0.22"/>
-    <circle cx="230" cy="330" r="120" fill="#F3F0E7" opacity="0.12"/>
-    <circle cx="360" cy="220" r="155" stroke="#F3F0E7" stroke-width="1.5" opacity="0.4"/>
-  </svg>
-  <div class="wrap band-inner">
-    <div class="kicker">Dois pesquisadores · educação + dados</div>
-    <h1>Construímos ferramentas digitais para ensino, pesquisa e dados.</h1>
-    <p>xdG lab reúne os apps que a gente cria e mantém no ar: abertos para usar na sala de aula, na análise e na visualização de dados.</p>
+  <div class="fog"><i class="f1"></i><i class="f2"></i><i class="f3"></i></div>
+
+  <!-- A REDE: circuito × rede neural — fontes de aço à esquerda,
+       núcleos de encontro no centro, terminais de sinal à direita.
+       Conteúdo gerado por assets/js/network.js -->
+  <svg class="flownet" data-animate="pulses" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true"></svg>
+
+  <div class="veil"></div>
+
+  <div class="hero-inner">
+    <div class="hello"><span class="dot"></span> Bem-vindo ao xdG:Lab</div>
+    <h1>Explore soluções digitais construídas com <span class="metal">ciências cognitivas</span>.</h1>
+    <p class="lead">Ferramentas para aprender, ensinar, cuidar e entender dados — desenhadas a partir do que a pesquisa sabe sobre como a mente funciona.</p>
     <div class="btn-row">
-      <a class="btn-xdg" href="ferramentas.html">Ver ferramentas</a>
-      <a class="btn-xdg ghost" href="quem.html">Quem somos</a>
+      <a class="btn-xdg" id="btn-explore" href="ferramentas.html">Explorar as soluções <span class="arr fwd">→</span></a>
+      <a class="btn-xdg ghost" id="btn-initiative" href="quem.html"><span class="arr bck">←</span> Conheça a iniciativa</a>
     </div>
+  </div>
+
+  <!-- telemetria: o estado do fluxo, em linguagem de laboratório -->
+  <div class="telemetry" aria-hidden="true">
+    <span class="led"></span>
+    fluxo <b id="tele-dir">anterógrado</b> · <b id="tele-speed">1.0×</b>
   </div>
 </div>
 ```
