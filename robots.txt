@@ -1,1 +1,1 @@
-Sitemap: https://xdglab.dev/sitemap.xml
+Sitemap: https://gabrielfortes-xdglab.github.io/sitemap.xml
