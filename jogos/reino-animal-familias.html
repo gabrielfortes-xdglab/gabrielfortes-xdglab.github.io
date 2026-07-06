@@ -91,6 +91,15 @@ const COB_FRASE = { penas:'penas', pelos:'pelos', escamas:'escamas' };
 const NASCE_FRASE = { ovo:'bota ovo', barriga:'nasce da barriga da mãe' };
 const MOVE_FRASE = { voa:'voa', anda:'anda', nada:'nada' };
 
+// introdução de cada família, uma de cada vez (nunca as 3 juntas na mesma fala) —
+// o jogo revela as famílias em fases: só depois de guardar os 2 bichos da família
+// atual é que a próxima aparece boiando. Reduz de 6 para 2 bichos simultâneos na tela.
+const INTRO_FAMILIA = {
+  aves:      'Vamos começar com as aves! Elas têm penas e voam. Leve cada bicho para a casa das aves.',
+  mamiferos: 'Agora os mamíferos! Eles têm pelos e andam. Leve cada bicho para a casa dos mamíferos.',
+  peixes:    'Por fim, os peixes! Eles têm escamas e nadam. Leve cada bicho para a casa dos peixes.',
+};
+
 // ---------- física (mesma sensação amigável do plataforma) ----------
 const TUNE = {
   gravity: 1500, jumpVel: -660, cutFactor: 0.45, maxFall: 620,
@@ -229,23 +238,31 @@ function freeSpots(except){
 }
 function shuffle(a){ return a.slice().sort(() => Math.random()-.5); }
 
+function releasePhase(groupKey){
+  const novos = ROSTER.filter(b => b.group === groupKey);
+  const spotOrder = freeSpots(null);
+  novos.forEach((b, i) => {
+    critters.push({
+      type: b.type, group: b.group,
+      spot: spotOrder[i % spotOrder.length],
+      bob: Math.random()*7, wobble: 0, state:'float', house:null, cbob: Math.random()*7,
+    });
+  });
+}
 function loadScreen(){
   carried = null;
   casas = Object.keys(GRUPOS).map(key => ({ key, cx: HOUSE_X[key], count: 0 }));
-  const elenco = shuffle(ROSTER);
-  const spotOrder = freeSpots(null);
-  critters = elenco.map((b, i) => ({
-    type: b.type, group: b.group,
-    spot: spotOrder[i % spotOrder.length],
-    bob: Math.random()*7, wobble: 0, state:'float', house:null, cbob: Math.random()*7,
-  }));
-  game.needToSort = critters.length;
+  game.phaseOrder = shuffle(Object.keys(GRUPOS));
+  game.phaseIdx = 0;
+  critters = [];
+  game.needToSort = ROSTER.length;
+  releasePhase(game.phaseOrder[0]);
   player.x = 590; player.y = GROUND_Y - player.h; player.vx = 0; player.vy = 0;
 }
 function startGame(){
   game.state = 'play';
   loadScreen();
-  speak('Três famílias de bichos! As aves têm penas, os mamíferos têm pelos, e os peixes têm escamas. Leve cada bicho para a sua família.');
+  speak(INTRO_FAMILIA[game.phaseOrder[0]]);
 }
 function resetGame(){
   game.state = 'title'; carried = null;
@@ -378,7 +395,19 @@ function deposit(c, casa){
     floatText(px, py-46, 'família ' + g.art + ' ' + g.nome + '!', 22, '#FFD97A');
     speak('É da família ' + g.art + ' ' + g.nome + '! O ' + NOME[c.type] + ' tem ' + COB_FRASE[g.cobertura] + '.');
     casa.count++;
-    if (done >= game.needToSort) screenComplete();
+    if (done >= game.needToSort){
+      screenComplete();
+    } else {
+      const faseAtual = game.phaseOrder[game.phaseIdx];
+      const faseTotal = ROSTER.filter(b => b.group === faseAtual).length;
+      const faseFeita = critters.filter(k => k.group === faseAtual && k.state === 'sorted').length;
+      if (faseFeita >= faseTotal){
+        game.phaseIdx++;
+        const proxima = game.phaseOrder[game.phaseIdx];
+        releasePhase(proxima);
+        setTimeout(() => speak(INTRO_FAMILIA[proxima]), 1000);
+      }
+    }
   } else {
     // não é dessa família: nada de punição, a voz ensina a que família ele pertence
     c.state = 'float'; c.wobble = .6;
