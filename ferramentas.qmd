@@ -104,6 +104,24 @@ pagetitle: "Ferramentas — xdG:Lab"
       </div>
     </div>
   </div>
+  <div class="tool-card">
+    <div class="tool-shot">
+      <div class="fallback">PIEX</div>
+      <iframe src="https://gabrielfortes-xdglab.github.io/piex-psicologia/" title="Pré-visualização do Diário de Campo PIEX" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="tool-body">
+      <div class="tool-meta">Estudantes <span class="dot">/</span> Português <span class="dot">/</span> No ar</div>
+      <h3>Diário de Campo · PIEX</h3>
+      <p>Portal do diário de campo semanal da disciplina de extensão curricularizada. Cada semana segue a mesma estrutura: planejamento, execução, avaliação com evidência, modificações e reflexividade. O PDF é gerado dentro do próprio navegador, sem servidor e sem banco de dados.</p>
+      <div class="tool-foot">
+        <a class="tool-cta" href="https://gabrielfortes-xdglab.github.io/piex-psicologia/" target="_blank">Abrir ferramenta</a>
+        <div class="qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=https://gabrielfortes-xdglab.github.io/piex-psicologia/" alt="QR code da ferramenta">
+          <span>aponte a câmera</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <p class="next-note">A lista cresce a cada nova ferramenta publicada.</p>
 </div>
 ```
