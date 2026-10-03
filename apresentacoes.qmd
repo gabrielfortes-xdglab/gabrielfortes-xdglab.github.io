@@ -1,0 +1,36 @@
+---
+pagetitle: "Apresentações — xdG:Lab"
+---
+
+```{=html}
+<div class="band inner">
+  <svg class="flownet" data-animate="none" viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true"></svg>
+  <div class="wrap band-inner">
+    <div class="kicker">Palestras · eventos · aulas</div>
+    <h1>Apresentações</h1>
+    <p>Os materiais que apresentamos, disponíveis para rever depois. Aponte a câmera no QR ou toque para abrir.</p>
+  </div>
+</div>
+
+<div class="wrap body-wrap">
+  <div class="tool-card">
+    <div class="tool-shot">
+      <div class="fallback">GUA</div>
+      <iframe src="apresentacoes/trayectorias-guatemala.html" title="Pré-visualização da apresentação Trayectorias Guatemala" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="tool-body">
+      <div class="tool-meta">Guatemala <span class="dot">/</span> Espanhol <span class="dot">/</span> Set. 2026</div>
+      <h3>Del instrumento al sistema: proteger trayectorias</h3>
+      <p>IAFREE e SPTE na proteção de trajetórias escolares: como passar de um instrumento de diagnóstico para um sistema que orienta a ação nas escolas. Leogildo Freires e Gabriel Fortes, 29 e 30 de setembro de 2026.</p>
+      <div class="tool-foot">
+        <a class="tool-cta" href="apresentacoes/trayectorias-guatemala.html" target="_blank">Abrir apresentação</a>
+        <div class="qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=https://gabrielfortes-xdglab.github.io/apresentacoes/trayectorias-guatemala.html" alt="QR code da apresentação">
+          <span>aponte a câmera</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="next-note">A lista cresce a cada nova apresentação.</p>
+</div>
+```

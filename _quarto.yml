@@ -3,6 +3,7 @@ project:
   output-dir: _site
   resources:
     - jogos/
+    - apresentacoes/
 
 website:
   title: "xdG:Lab"
@@ -20,6 +21,8 @@ website:
         href: index.qmd
       - text: "Ferramentas"
         href: ferramentas.qmd
+      - text: "Apresentações"
+        href: apresentacoes.qmd
       - text: "O que fazemos"
         href: fazemos.qmd
       - text: "Quem somos"
